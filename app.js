@@ -415,4 +415,157 @@ document.addEventListener('DOMContentLoaded', () => {
     
     alert('성공적으로 HTML 파일이 내보내졌습니다! 다운로드 폴더를 확인해 보세요.');
   });
+
+  // 14. Seoul 7-Day Weather Forecast Implementation
+  const getWeatherDescription = (code) => {
+    // WMO Weather interpretation codes (WW)
+    const codes = {
+      0: { desc: "맑음", icon: "sun" },
+      1: { desc: "대체로 맑음", icon: "cloud-sun" },
+      2: { desc: "구름 조금", icon: "cloud-sun" },
+      3: { desc: "흐림", icon: "cloud" },
+      45: { desc: "안개", icon: "cloud-drizzle" },
+      48: { desc: "침적 안개", icon: "cloud-drizzle" },
+      51: { desc: "가벼운 이슬비", icon: "cloud-drizzle" },
+      53: { desc: "이슬비", icon: "cloud-drizzle" },
+      55: { desc: "짙은 이슬비", icon: "cloud-drizzle" },
+      61: { desc: "약한 비", icon: "cloud-rain" },
+      63: { desc: "보통 비", icon: "cloud-rain" },
+      65: { desc: "강한 비", icon: "cloud-heavy-rain" },
+      71: { desc: "가벼운 눈", icon: "snowflake" },
+      73: { desc: "눈", icon: "snowflake" },
+      75: { desc: "강한 눈", icon: "snowflake" },
+      77: { desc: "싸락눈", icon: "snowflake" },
+      80: { desc: "약한 소나기", icon: "cloud-drizzle" },
+      81: { desc: "소나기", icon: "cloud-rain" },
+      82: { desc: "강한 소나기", icon: "cloud-heavy-rain" },
+      85: { desc: "약한 눈 소나기", icon: "snowflake" },
+      86: { desc: "강한 눈 소나기", icon: "snowflake" },
+      95: { desc: "뇌우", icon: "cloud-lightning" },
+      96: { desc: "뇌우 및 우박", icon: "cloud-lightning" },
+      99: { desc: "강한 뇌우 및 우박", icon: "cloud-lightning" }
+    };
+    return codes[code] || { desc: "알 수 없음", icon: "cloud" };
+  };
+
+  const formatDay = (dateStr) => {
+    const date = new Date(dateStr);
+    const days = ["일", "월", "화", "수", "목", "금", "토"];
+    const dayOfWeek = days[date.getDay()];
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return {
+      dayOfWeek: `${dayOfWeek}요일`,
+      dateDisplay: `${month}/${day}`
+    };
+  };
+
+  const fetchSeoulWeather = async () => {
+    const loader = document.getElementById('weather-loader');
+    const forecastGrid = document.getElementById('forecast-grid');
+    const refreshBtnIcon = document.querySelector('#refresh-weather-btn i');
+    
+    if (refreshBtnIcon) refreshBtnIcon.classList.add('spinning');
+    
+    try {
+      const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=37.5665&longitude=126.9780&current_weather=true&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FSeoul');
+      if (!res.ok) throw new Error('Weather data fetch failed');
+      const data = await res.json();
+      
+      // Render current weather
+      const currentTemp = Math.round(data.current_weather.temperature);
+      const currentCode = data.current_weather.weathercode;
+      const { desc: currentDesc, icon: currentIconName } = getWeatherDescription(currentCode);
+      
+      const currentTempEl = document.getElementById('current-temp');
+      const currentDescEl = document.getElementById('current-desc');
+      if (currentTempEl) currentTempEl.textContent = `${currentTemp}°C`;
+      if (currentDescEl) currentDescEl.textContent = currentDesc;
+      
+      // Render icon
+      const currentIconWrapper = document.getElementById('current-weather-icon');
+      if (currentIconWrapper) {
+        currentIconWrapper.innerHTML = `<i data-lucide="${currentIconName}" class="weather-icon-large"></i>`;
+      }
+      
+      // Daily weather details for today (index 0)
+      const todayMax = Math.round(data.daily.temperature_2m_max[0]);
+      const todayMin = Math.round(data.daily.temperature_2m_min[0]);
+      const todayPrecip = data.daily.precipitation_probability_max[0];
+      
+      const todayMaxEl = document.getElementById('today-max-temp');
+      const todayMinEl = document.getElementById('today-min-temp');
+      const todayPrecipEl = document.getElementById('today-precip');
+      if (todayMaxEl) todayMaxEl.textContent = `${todayMax}°C`;
+      if (todayMinEl) todayMinEl.textContent = `${todayMin}°C`;
+      if (todayPrecipEl) todayPrecipEl.textContent = `${todayPrecip}%`;
+      
+      // Render 7-day forecast cards
+      if (forecastGrid) {
+        forecastGrid.innerHTML = '';
+        
+        for (let i = 0; i < 7; i++) {
+          const dateStr = data.daily.time[i];
+          const maxTemp = Math.round(data.daily.temperature_2m_max[i]);
+          const minTemp = Math.round(data.daily.temperature_2m_min[i]);
+          const weatherCode = data.daily.weathercode[i];
+          const precipProb = data.daily.precipitation_probability_max[i];
+          
+          const { dayOfWeek, dateDisplay } = formatDay(dateStr);
+          const { desc, icon } = getWeatherDescription(weatherCode);
+          
+          const card = document.createElement('div');
+          card.className = 'glass-panel forecast-card';
+          card.innerHTML = `
+            <div class="forecast-date">
+              <div>${dayOfWeek}</div>
+              <div style="font-size: 0.8rem; color: var(--text-muted);">${dateDisplay}</div>
+            </div>
+            <div class="forecast-icon">
+              <i data-lucide="${icon}" style="width: 28px; height: 28px;"></i>
+            </div>
+            <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">${desc}</div>
+            <div class="forecast-temp">
+              <span class="forecast-temp-max">${maxTemp}°C</span>
+              <span class="forecast-temp-min">${minTemp}°C</span>
+            </div>
+            <div class="forecast-precip">
+              <i data-lucide="umbrella" style="width: 12px; height: 12px;"></i> ${precipProb}%
+            </div>
+          `;
+          forecastGrid.appendChild(card);
+        }
+      }
+      
+      // Recreate lucide icons for newly added HTML elements
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+    } catch (err) {
+      console.error(err);
+      if (forecastGrid) {
+        forecastGrid.innerHTML = `
+          <div class="weather-error">
+            <i data-lucide="alert-triangle" style="width: 32px; height: 32px; color: var(--accent-1);"></i>
+            <p>날씨 데이터를 불러오는데 실패했습니다. 네트워크를 확인해 주세요.</p>
+          </div>
+        `;
+        if (typeof lucide !== 'undefined') {
+          lucide.createIcons();
+        }
+      }
+    } finally {
+      if (refreshBtnIcon) {
+        refreshBtnIcon.classList.remove('spinning');
+      }
+    }
+  };
+
+  const refreshWeatherBtn = document.getElementById('refresh-weather-btn');
+  if (refreshWeatherBtn) {
+    refreshWeatherBtn.addEventListener('click', fetchSeoulWeather);
+  }
+
+  // Initial Fetch
+  fetchSeoulWeather();
 });
