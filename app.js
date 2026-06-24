@@ -1,0 +1,418 @@
+document.addEventListener('DOMContentLoaded', () => {
+  // 1. Initialize Lucide Icons
+  if (typeof lucide !== 'undefined') {
+    lucide.createIcons();
+  }
+
+  // 2. DOM Elements
+  const themeToggle = document.getElementById('theme-toggle');
+  const themeIcon = document.getElementById('theme-icon');
+  const header = document.querySelector('header');
+  const customizerToggle = document.getElementById('customizer-toggle');
+  const customizerClose = document.getElementById('customizer-close');
+  const customizerDrawer = document.getElementById('customizer-drawer');
+  const customizerOverlay = document.getElementById('customizer-overlay');
+  
+  // Customizer Input Elements
+  const accent1Picker = document.getElementById('accent1-picker');
+  const accent2Picker = document.getElementById('accent2-picker');
+  const editLogo = document.getElementById('edit-logo');
+  const editName = document.getElementById('edit-name');
+  const editRoles = document.getElementById('edit-roles');
+  const editTag = document.getElementById('edit-tag');
+  const editAvatar = document.getElementById('edit-avatar');
+  const editBio = document.getElementById('edit-bio');
+  const editLongBio = document.getElementById('edit-long-bio');
+  const editExperience = document.getElementById('edit-experience');
+  const editProjects = document.getElementById('edit-projects');
+  const editEmail = document.getElementById('edit-email');
+  const editPhone = document.getElementById('edit-phone');
+  const editLocation = document.getElementById('edit-location');
+  
+  const btnExportHTML = document.getElementById('export-html');
+  const btnResetCustomizer = document.getElementById('reset-customizer');
+
+  // DOM Display Elements to be updated
+  const headerLogoText = document.getElementById('header-logo');
+  const heroTagText = document.getElementById('hero-tag');
+  const heroNameText = document.getElementById('hero-name');
+  const heroBioText = document.getElementById('hero-bio');
+  const heroAvatarImg = document.getElementById('hero-avatar');
+  const aboutLongBioText = document.getElementById('about-long-bio');
+  const statExperienceText = document.getElementById('stat-experience');
+  const statProjectsText = document.getElementById('stat-projects');
+  const contactEmailText = document.getElementById('contact-email');
+  const contactPhoneText = document.getElementById('contact-phone');
+  const contactLocationText = document.getElementById('contact-location');
+  const footerCopyrightText = document.getElementById('footer-copyright');
+
+  // Initial State Copy for Reset Functionality
+  const defaultState = {
+    accent1: '#a855f7',
+    accent2: '#06b6d4',
+    logo: 'Dev.Studio',
+    name: '홍길동',
+    roles: '크리에이티브 개발자, UX 엔지니어, 문제 해결사',
+    tag: 'Welcome to my space',
+    avatar: 'profile.jpg',
+    bio: '사용자 중심의 가치를 코드로 구현하는 개발자입니다. 최신 웹 기술을 기반으로 직관적이고 아름다운 인터페이스를 설계하고 안정적인 웹 서비스를 구축합니다.',
+    longBio: '저는 웹의 무한한 가능성을 신뢰하는 엔지니어입니다. 복잡한 문제를 간단하고 명쾌한 코드로 푸는 것을 좋아하며, 기술로 사람들의 일상을 더 편리하게 만드는 데 열정을 쏟고 있습니다. 웹 퍼포먼스 튜닝, 직관적인 UI 설계, 그리고 팀원들과의 원활한 상호 성장을 소중하게 여깁니다.',
+    experience: '3+',
+    projects: '30+',
+    email: 'gildong@example.com',
+    phone: '010-1234-5678',
+    location: '대한민국 서울시 강남구'
+  };
+
+  // 3. Theme Toggle Functionality
+  const initTheme = () => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'light') {
+      document.body.classList.add('light-theme');
+      updateThemeIcon(true);
+    } else {
+      document.body.classList.remove('light-theme');
+      updateThemeIcon(false);
+    }
+  };
+
+  const updateThemeIcon = (isLight) => {
+    if (!themeIcon) return;
+    if (isLight) {
+      themeIcon.setAttribute('data-lucide', 'sun');
+    } else {
+      themeIcon.setAttribute('data-lucide', 'moon');
+    }
+    // Re-render the specific lucide icon
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+  };
+
+  themeToggle.addEventListener('click', () => {
+    const isLight = document.body.classList.toggle('light-theme');
+    localStorage.setItem('theme', isLight ? 'light' : 'dark');
+    updateThemeIcon(isLight);
+  });
+
+  initTheme();
+
+  // 4. Header Scroll Style Toggle
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 50) {
+      header.classList.add('scrolled');
+    } else {
+      header.classList.remove('scrolled');
+    }
+  });
+
+  // 5. Active Nav Link on Scroll
+  const sections = document.querySelectorAll('section');
+  const navLinks = document.querySelectorAll('.nav-links a');
+
+  const highlightNav = () => {
+    let scrollPos = window.scrollY + 100;
+    
+    sections.forEach(section => {
+      const top = section.offsetTop;
+      const height = section.offsetHeight;
+      const id = section.getAttribute('id');
+      
+      if (scrollPos >= top && scrollPos < top + height) {
+        navLinks.forEach(link => {
+          link.classList.remove('active');
+          if (link.getAttribute('href') === `#${id}`) {
+            link.classList.add('active');
+          }
+        });
+      }
+    });
+  };
+
+  window.addEventListener('scroll', highlightNav);
+
+  // 6. Typing Effect for Hero Subtitle
+  let roles = defaultState.roles.split(',').map(r => r.trim());
+  let roleIndex = 0;
+  let charIndex = 0;
+  let isDeleting = false;
+  const roleTextEl = document.getElementById('hero-role-text');
+  let typeSpeed = 100;
+  let typingTimer = null;
+
+  const typeRoles = () => {
+    if (!roleTextEl) return;
+    const currentRole = roles[roleIndex];
+    
+    if (isDeleting) {
+      charIndex--;
+      typeSpeed = 50;
+    } else {
+      charIndex++;
+      typeSpeed = 120;
+    }
+
+    roleTextEl.textContent = currentRole.substring(0, charIndex);
+
+    if (!isDeleting && charIndex === currentRole.length) {
+      // Pause at full word
+      typeSpeed = 2000;
+      isDeleting = true;
+    } else if (isDeleting && charIndex === 0) {
+      isDeleting = false;
+      roleIndex = (roleIndex + 1) % roles.length;
+      // Pause before typing next word
+      typeSpeed = 500;
+    }
+
+    typingTimer = setTimeout(typeRoles, typeSpeed);
+  };
+
+  typeRoles();
+
+  const restartTypingEffect = (newRolesString) => {
+    if (typingTimer) clearTimeout(typingTimer);
+    roles = newRolesString.split(',').map(r => r.trim()).filter(r => r !== '');
+    if (roles.length === 0) roles = ["개발자"];
+    roleIndex = 0;
+    charIndex = 0;
+    isDeleting = false;
+    typeRoles();
+  };
+
+  // 7. Scroll Reveal Animation & Progress Bar Fills
+  const reveals = document.querySelectorAll('.reveal');
+  const skillBars = document.querySelectorAll('.skill-bar-fill');
+
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('active');
+        
+        // If the skills section is visible, animate progress bars
+        if (entry.target.id === 'skills') {
+          skillBars.forEach(bar => {
+            bar.style.width = bar.getAttribute('data-percent');
+          });
+        }
+      }
+    });
+  }, { threshold: 0.15 });
+
+  reveals.forEach(el => revealObserver.observe(el));
+
+  // 8. Skill Tab Switching
+  const tabButtons = document.querySelectorAll('.tab-btn');
+  const panels = document.querySelectorAll('.skills-panel');
+
+  tabButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      // Deactivate all tabs & panels
+      tabButtons.forEach(b => b.classList.remove('active'));
+      panels.forEach(p => p.classList.remove('active'));
+
+      // Activate current tab & matching panel
+      btn.classList.add('active');
+      const targetId = btn.getAttribute('data-tab');
+      const targetPanel = document.getElementById(targetId);
+      if (targetPanel) {
+        targetPanel.classList.add('active');
+        
+        // Reset and animate bar fills inside the opened panel
+        const subBars = targetPanel.querySelectorAll('.skill-bar-fill');
+        subBars.forEach(bar => {
+          bar.style.width = '0%';
+          setTimeout(() => {
+            bar.style.width = bar.getAttribute('data-percent');
+          }, 50);
+        });
+      }
+    });
+  });
+
+  // 9. Profile Customizer Drawer Logic
+  const openCustomizer = () => {
+    customizerDrawer.classList.add('open');
+    customizerOverlay.classList.add('open');
+  };
+
+  const closeCustomizer = () => {
+    customizerDrawer.classList.remove('open');
+    customizerOverlay.classList.remove('open');
+  };
+
+  customizerToggle.addEventListener('click', openCustomizer);
+  customizerClose.addEventListener('click', closeCustomizer);
+  customizerOverlay.addEventListener('click', closeCustomizer);
+
+  // 10. Live Updating DOM elements from Customizer
+  const updateAccentColors = () => {
+    const color1 = accent1Picker.value;
+    const color2 = accent2Picker.value;
+    document.documentElement.style.setProperty('--accent-1', color1);
+    document.documentElement.style.setProperty('--accent-2', color2);
+    document.documentElement.style.setProperty('--accent-gradient', `linear-gradient(135deg, ${color1}, ${color2})`);
+    document.documentElement.style.setProperty('--accent-shadow', `${color1}59`); // color1 + 35% opacity in hex (59)
+  };
+
+  accent1Picker.addEventListener('input', updateAccentColors);
+  accent2Picker.addEventListener('input', updateAccentColors);
+
+  editLogo.addEventListener('input', (e) => {
+    headerLogoText.textContent = e.target.value;
+    updateFooterCopyright();
+  });
+  
+  editName.addEventListener('input', (e) => {
+    heroNameText.textContent = e.target.value;
+  });
+
+  editRoles.addEventListener('input', (e) => {
+    restartTypingEffect(e.target.value);
+  });
+
+  editTag.addEventListener('input', (e) => {
+    heroTagText.textContent = e.target.value;
+  });
+
+  editAvatar.addEventListener('input', (e) => {
+    heroAvatarImg.src = e.target.value;
+  });
+
+  editBio.addEventListener('input', (e) => {
+    heroBioText.textContent = e.target.value;
+  });
+
+  editLongBio.addEventListener('input', (e) => {
+    aboutLongBioText.textContent = e.target.value;
+  });
+
+  editExperience.addEventListener('input', (e) => {
+    statExperienceText.textContent = e.target.value;
+  });
+
+  editProjects.addEventListener('input', (e) => {
+    statProjectsText.textContent = e.target.value;
+  });
+
+  editEmail.addEventListener('input', (e) => {
+    contactEmailText.textContent = e.target.value;
+  });
+
+  editPhone.addEventListener('input', (e) => {
+    contactPhoneText.textContent = e.target.value;
+  });
+
+  editLocation.addEventListener('input', (e) => {
+    contactLocationText.textContent = e.target.value;
+  });
+
+  const updateFooterCopyright = () => {
+    const brand = editLogo.value || defaultState.logo;
+    const currentYear = new Date().getFullYear();
+    footerCopyrightText.innerHTML = `&copy; ${currentYear} ${brand}. All rights reserved.`;
+  };
+
+  // 11. Form Submission Handler
+  const contactForm = document.getElementById('contactForm');
+  contactForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    alert('메시지가 성공적으로 전송되었습니다! (실제 포트폴리오 메일 연동을 원하신다면 Formspree 혹은 EmailJS 연동이 필요합니다)');
+    contactForm.reset();
+  });
+
+  // 12. Reset Customizer Values
+  const resetCustomizer = () => {
+    accent1Picker.value = defaultState.accent1;
+    accent2Picker.value = defaultState.accent2;
+    updateAccentColors();
+
+    editLogo.value = defaultState.logo;
+    headerLogoText.textContent = defaultState.logo;
+
+    editName.value = defaultState.name;
+    heroNameText.textContent = defaultState.name;
+
+    editRoles.value = defaultState.roles;
+    restartTypingEffect(defaultState.roles);
+
+    editTag.value = defaultState.tag;
+    heroTagText.textContent = defaultState.tag;
+
+    editAvatar.value = defaultState.avatar;
+    heroAvatarImg.src = defaultState.avatar;
+
+    editBio.value = defaultState.bio;
+    heroBioText.textContent = defaultState.bio;
+
+    editLongBio.value = defaultState.longBio;
+    aboutLongBioText.textContent = defaultState.longBio;
+
+    editExperience.value = defaultState.experience;
+    statExperienceText.textContent = defaultState.experience;
+
+    editProjects.value = defaultState.projects;
+    statProjectsText.textContent = defaultState.projects;
+
+    editEmail.value = defaultState.email;
+    contactEmailText.textContent = defaultState.email;
+
+    editPhone.value = defaultState.phone;
+    contactPhoneText.textContent = defaultState.phone;
+
+    editLocation.value = defaultState.location;
+    contactLocationText.textContent = defaultState.location;
+
+    updateFooterCopyright();
+  };
+
+  btnResetCustomizer.addEventListener('click', resetCustomizer);
+
+  // 13. Export Clean HTML (Dynamic build)
+  btnExportHTML.addEventListener('click', () => {
+    // Clone document structure
+    const docClone = document.documentElement.cloneNode(true);
+    
+    // Remove customizer parts
+    const drawer = docClone.querySelector('#customizer-drawer');
+    const overlay = docClone.querySelector('#customizer-overlay');
+    const toggleBtn = docClone.querySelector('#customizer-toggle');
+    if (drawer) drawer.remove();
+    if (overlay) overlay.remove();
+    if (toggleBtn) toggleBtn.remove();
+    
+    // Inject Custom Colors inside head style block
+    const color1 = accent1Picker.value;
+    const color2 = accent2Picker.value;
+    const styleBlock = document.createElement('style');
+    styleBlock.textContent = `
+      :root {
+        --accent-1: ${color1} !important;
+        --accent-2: ${color2} !important;
+        --accent-gradient: linear-gradient(135deg, ${color1}, ${color2}) !important;
+        --accent-shadow: ${color1}59 !important;
+      }
+    `;
+    docClone.querySelector('head').appendChild(styleBlock);
+
+    // Clean up unnecessary scripts (like the customizer itself)
+    // Or we keep app.js but we clean up the customizer elements in app.js
+    // To ensure the exported file runs fine even without the customizer DOM elements, 
+    // app.js handles null elements gracefully. So it will run fine!
+    
+    const htmlContent = '<!DOCTYPE html>\n' + docClone.outerHTML;
+    
+    // Trigger Download
+    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${editName.value || 'portfolio'}_portfolio.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    alert('성공적으로 HTML 파일이 내보내졌습니다! 다운로드 폴더를 확인해 보세요.');
+  });
+});
