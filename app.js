@@ -606,7 +606,22 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   if (tabOpenerBtn) {
+    let countdownTimer = null; // track active countdown so we can cancel
+
     tabOpenerBtn.addEventListener('click', async () => {
+      // If countdown is already running, cancel it
+      if (countdownTimer !== null) {
+        clearInterval(countdownTimer);
+        countdownTimer = null;
+        tabOpenerBtn.disabled = false;
+        tabOpenerBtn.style.opacity = '1';
+        tabOpenerBtn.innerHTML = '<i data-lucide="external-link" style="width:18px;height:18px;"></i> 대기 후 새 탭 열기';
+        setStatus('카운트다운이 취소되었습니다.', 'warning', 'x-circle');
+        addLog('카운트다운 취소됨.', 'warning');
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+        return;
+      }
+
       const url = tabUrlInput ? tabUrlInput.value.trim() : '';
       const delaySec = parseInt(tabDelayInput ? tabDelayInput.value : '3', 10) || 3;
 
@@ -622,50 +637,46 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // Disable button while running
-      tabOpenerBtn.disabled = true;
-      tabOpenerBtn.style.opacity = '0.6';
+      addLog(`${delaySec}초 후 새 탭 열기 예약 → ${url}`, 'info');
 
-      // Step 1: Open new tab
-      setStatus(`새 탭을 여는 중... → ${url}`, 'loading', 'loader');
-      addLog(`새 탭 열기 시도 → ${url}`, 'info');
+      // Countdown phase
+      let remaining = delaySec;
 
-      const newTab = window.open(url, '_blank');
+      const updateCountdown = () => {
+        setStatus(`${remaining}초 후 새 탭을 엽니다... (버튼을 다시 누르면 취소)`, 'loading', 'timer');
+        tabOpenerBtn.innerHTML = `<i data-lucide="x-circle" style="width:18px;height:18px;"></i> 취소 (${remaining}초)`;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+      };
 
-      if (!newTab) {
-        setStatus('팝업이 차단되었습니다. 브라우저 팝업 허용 설정을 확인해 주세요.', 'error', 'shield-off');
-        addLog('오류: 브라우저가 팝업(새 탭)을 차단했습니다.', 'error');
-        tabOpenerBtn.disabled = false;
-        tabOpenerBtn.style.opacity = '1';
-        return;
-      }
+      updateCountdown(); // show immediately
 
-      addLog(`✓ 새 탭 열기 성공.`, 'success');
-      setStatus(`${delaySec}초 후 새로고침을 시도합니다...`, 'loading', 'loader');
-      addLog(`${delaySec}초 대기 중...`, 'info');
+      countdownTimer = setInterval(() => {
+        remaining--;
+        if (remaining <= 0) {
+          // Countdown done — open the tab
+          clearInterval(countdownTimer);
+          countdownTimer = null;
 
-      // Step 2: Wait and then reload
-      await new Promise(resolve => setTimeout(resolve, delaySec * 1000));
+          tabOpenerBtn.innerHTML = '<i data-lucide="external-link" style="width:18px;height:18px;"></i> 대기 후 새 탭 열기';
+          if (typeof lucide !== 'undefined') lucide.createIcons();
 
-      try {
-        newTab.location.reload();
-        setStatus('새로고침 완료!', 'success', 'check-circle-2');
-        addLog('✓ 새로고침 성공!', 'success');
-      } catch (e) {
-        // Cross-origin tabs block access to .location
-        setStatus(
-          '새 탭은 열렸으나, 보안 정책으로 새로고침은 차단되었습니다 (외부 URL).',
-          'warning',
-          'alert-triangle'
-        );
-        addLog('경고: 크로스 오리진 보안 정책으로 새로고침이 차단됨. 새 탭 열기는 완료.', 'warning');
-      }
+          setStatus(`새 탭을 여는 중...`, 'loading', 'loader');
+          addLog(`카운트다운 완료. 새 탭 열기 시도 → ${url}`, 'info');
 
-      // Re-enable button
-      tabOpenerBtn.disabled = false;
-      tabOpenerBtn.style.opacity = '1';
+          const newTab = window.open(url, '_blank');
 
-      if (typeof lucide !== 'undefined') lucide.createIcons();
+          if (!newTab) {
+            setStatus('팝업이 차단되었습니다. 브라우저 팝업 허용 설정을 확인해 주세요.', 'error', 'shield-off');
+            addLog('오류: 브라우저가 팝업(새 탭)을 차단했습니다.', 'error');
+          } else {
+            setStatus(`새 탭 열기 완료!`, 'success', 'check-circle-2');
+            addLog(`✓ 새 탭 열기 성공 → ${url}`, 'success');
+          }
+          if (typeof lucide !== 'undefined') lucide.createIcons();
+        } else {
+          updateCountdown();
+        }
+      }, 1000);
     });
   }
 
