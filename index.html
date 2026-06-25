@@ -21,6 +21,7 @@
         <li><a href="#skills">Skills</a></li>
         <li><a href="#projects">Projects</a></li>
         <li><a href="#weather">Weather</a></li>
+        <li><a href="#tab-opener">Tab Opener</a></li>
         <li><a href="#contact">Contact</a></li>
       </ul>
       <div class="nav-actions">
@@ -343,6 +344,85 @@
     </div>
   </section>
 
+  <!-- Tab Opener Section -->
+  <section id="tab-opener" class="reveal">
+    <div class="container">
+      <div class="section-header">
+        <h2>Tab Opener</h2>
+        <p>원하는 URL을 새 탭에서 열고, 지정한 시간 뒤 자동으로 한 번 새로고침합니다.</p>
+      </div>
+      <div class="tab-opener-wrapper">
+        <div class="glass-panel tab-opener-card">
+
+          <!-- URL Input Row -->
+          <div class="tab-opener-input-row">
+            <div class="tab-opener-input-group">
+              <label for="tab-url-input" class="tab-opener-label">
+                <i data-lucide="link" style="width:16px;height:16px;"></i>
+                열 URL 주소
+              </label>
+              <input
+                type="url"
+                id="tab-url-input"
+                class="form-control tab-url-input"
+                placeholder="https://example.com"
+                value="https://arolee55.github.io/arolee55_gemini_intro/"
+              >
+            </div>
+            <div class="tab-opener-input-group tab-opener-delay-group">
+              <label for="tab-delay-input" class="tab-opener-label">
+                <i data-lucide="timer" style="width:16px;height:16px;"></i>
+                새로고침 대기 시간 (초)
+              </label>
+              <input
+                type="number"
+                id="tab-delay-input"
+                class="form-control"
+                value="3"
+                min="1"
+                max="30"
+                style="max-width:120px;"
+              >
+            </div>
+          </div>
+
+          <!-- Action Button -->
+          <button class="btn btn-primary" id="tab-opener-btn" style="margin-top:1.5rem;">
+            <i data-lucide="external-link" style="width:18px;height:18px;"></i>
+            새 탭으로 열고 새로고침
+          </button>
+
+          <!-- Status Display -->
+          <div class="tab-opener-status" id="tab-opener-status" style="display:none;">
+            <div class="tab-opener-status-icon" id="tab-opener-status-icon">
+              <i data-lucide="loader" style="width:20px;height:20px;"></i>
+            </div>
+            <p id="tab-opener-status-msg">새 탭을 여는 중...</p>
+          </div>
+
+          <!-- Info Notice -->
+          <div class="tab-opener-notice">
+            <i data-lucide="info" style="width:14px;height:14px;"></i>
+            <span>보안 정책으로 인해 <strong>같은 도메인(Same-origin) URL</strong>에서만 자동 새로고침이 작동합니다. 외부 URL은 새 탭 열기만 실행됩니다.</span>
+          </div>
+
+        </div>
+
+        <!-- Log Panel -->
+        <div class="glass-panel tab-opener-log">
+          <div class="tab-opener-log-header">
+            <i data-lucide="terminal" style="width:16px;height:16px;"></i>
+            실행 로그
+            <button class="btn btn-secondary" id="tab-log-clear-btn" style="margin-left:auto;padding:0.3rem 0.8rem;font-size:0.8rem;">지우기</button>
+          </div>
+          <ul class="tab-opener-log-list" id="tab-opener-log-list">
+            <li class="log-item log-info">대기 중... URL을 입력하고 버튼을 눌러주세요.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Contact Section -->
   <section id="contact" class="reveal">
     <div class="container">
@@ -408,6 +488,7 @@
         <a href="#skills">Skills</a>
         <a href="#projects">Projects</a>
         <a href="#weather">Weather</a>
+        <a href="#tab-opener">Tab Opener</a>
         <a href="#contact">Contact</a>
       </div>
     </div>

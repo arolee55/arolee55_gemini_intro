@@ -568,4 +568,114 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initial Fetch
   fetchSeoulWeather();
+
+  // 15. Tab Opener Feature
+  const tabOpenerBtn    = document.getElementById('tab-opener-btn');
+  const tabUrlInput     = document.getElementById('tab-url-input');
+  const tabDelayInput   = document.getElementById('tab-delay-input');
+  const tabStatus       = document.getElementById('tab-opener-status');
+  const tabStatusIcon   = document.getElementById('tab-opener-status-icon');
+  const tabStatusMsg    = document.getElementById('tab-opener-status-msg');
+  const tabLogList      = document.getElementById('tab-opener-log-list');
+  const tabLogClearBtn  = document.getElementById('tab-log-clear-btn');
+
+  // Helper: append a timestamped log entry
+  const addLog = (message, type = 'info') => {
+    if (!tabLogList) return;
+    const now = new Date();
+    const time = now.toLocaleTimeString('ko-KR', { hour12: false });
+    const li = document.createElement('li');
+    li.className = `log-item log-${type}`;
+    li.textContent = `[${time}] ${message}`;
+    tabLogList.appendChild(li);
+    // Auto-scroll to bottom
+    tabLogList.scrollTop = tabLogList.scrollHeight;
+  };
+
+  // Helper: update the status card appearance
+  const setStatus = (message, type = 'loading', iconName = 'loader') => {
+    if (!tabStatus) return;
+    tabStatus.style.display = 'flex';
+    tabStatus.className = 'tab-opener-status';
+    if (type !== 'loading') tabStatus.classList.add(`status-${type}`);
+
+    tabStatusIcon.innerHTML = `<i data-lucide="${iconName}" style="width:20px;height:20px;"></i>`;
+    tabStatusMsg.textContent = message;
+
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  };
+
+  if (tabOpenerBtn) {
+    tabOpenerBtn.addEventListener('click', async () => {
+      const url = tabUrlInput ? tabUrlInput.value.trim() : '';
+      const delaySec = parseInt(tabDelayInput ? tabDelayInput.value : '3', 10) || 3;
+
+      // Validate URL
+      if (!url) {
+        setStatus('URL을 입력해 주세요.', 'error', 'alert-circle');
+        addLog('오류: URL이 비어 있습니다.', 'error');
+        return;
+      }
+      try { new URL(url); } catch {
+        setStatus('유효하지 않은 URL 형식입니다.', 'error', 'alert-circle');
+        addLog(`오류: 유효하지 않은 URL → ${url}`, 'error');
+        return;
+      }
+
+      // Disable button while running
+      tabOpenerBtn.disabled = true;
+      tabOpenerBtn.style.opacity = '0.6';
+
+      // Step 1: Open new tab
+      setStatus(`새 탭을 여는 중... → ${url}`, 'loading', 'loader');
+      addLog(`새 탭 열기 시도 → ${url}`, 'info');
+
+      const newTab = window.open(url, '_blank');
+
+      if (!newTab) {
+        setStatus('팝업이 차단되었습니다. 브라우저 팝업 허용 설정을 확인해 주세요.', 'error', 'shield-off');
+        addLog('오류: 브라우저가 팝업(새 탭)을 차단했습니다.', 'error');
+        tabOpenerBtn.disabled = false;
+        tabOpenerBtn.style.opacity = '1';
+        return;
+      }
+
+      addLog(`✓ 새 탭 열기 성공.`, 'success');
+      setStatus(`${delaySec}초 후 새로고침을 시도합니다...`, 'loading', 'loader');
+      addLog(`${delaySec}초 대기 중...`, 'info');
+
+      // Step 2: Wait and then reload
+      await new Promise(resolve => setTimeout(resolve, delaySec * 1000));
+
+      try {
+        newTab.location.reload();
+        setStatus('새로고침 완료!', 'success', 'check-circle-2');
+        addLog('✓ 새로고침 성공!', 'success');
+      } catch (e) {
+        // Cross-origin tabs block access to .location
+        setStatus(
+          '새 탭은 열렸으나, 보안 정책으로 새로고침은 차단되었습니다 (외부 URL).',
+          'warning',
+          'alert-triangle'
+        );
+        addLog('경고: 크로스 오리진 보안 정책으로 새로고침이 차단됨. 새 탭 열기는 완료.', 'warning');
+      }
+
+      // Re-enable button
+      tabOpenerBtn.disabled = false;
+      tabOpenerBtn.style.opacity = '1';
+
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    });
+  }
+
+  // Clear log
+  if (tabLogClearBtn) {
+    tabLogClearBtn.addEventListener('click', () => {
+      if (tabLogList) {
+        tabLogList.innerHTML = '<li class="log-item log-info">로그가 지워졌습니다.</li>';
+      }
+      if (tabStatus) tabStatus.style.display = 'none';
+    });
+  }
 });
