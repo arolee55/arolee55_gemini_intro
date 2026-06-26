@@ -573,6 +573,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const tabOpenerBtn    = document.getElementById('tab-opener-btn');
   const tabUrlInput     = document.getElementById('tab-url-input');
   const tabDelayInput   = document.getElementById('tab-delay-input');
+  const tabLoopInput    = document.getElementById('tab-loop-input');
   const tabStatus       = document.getElementById('tab-opener-status');
   const tabStatusIcon   = document.getElementById('tab-opener-status-icon');
   const tabStatusMsg    = document.getElementById('tab-opener-status-msg');
@@ -606,24 +607,30 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   if (tabOpenerBtn) {
-    let countdownTimer = null; // track active countdown so we can cancel
+    let countdownTimer = null;
+    let currentLoopCount = 0;
 
-    tabOpenerBtn.addEventListener('click', async () => {
-      // If countdown is already running, cancel it
-      if (countdownTimer !== null) {
+    const stopOpener = (message = '반복 실행이 중지되었습니다.', type = 'warning', icon = 'x-circle') => {
+      if (countdownTimer) {
         clearInterval(countdownTimer);
         countdownTimer = null;
-        tabOpenerBtn.disabled = false;
-        tabOpenerBtn.style.opacity = '1';
-        tabOpenerBtn.innerHTML = '<i data-lucide="external-link" style="width:18px;height:18px;"></i> 대기 후 새 탭 열기';
-        setStatus('카운트다운이 취소되었습니다.', 'warning', 'x-circle');
-        addLog('카운트다운 취소됨.', 'warning');
-        if (typeof lucide !== 'undefined') lucide.createIcons();
+      }
+      tabOpenerBtn.innerHTML = '<i data-lucide="external-link" style="width:18px;height:18px;"></i> 반복 새 탭 열기 시작';
+      setStatus(message, type, icon);
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    };
+
+    tabOpenerBtn.addEventListener('click', async () => {
+      // If already running, stop it
+      if (countdownTimer !== null) {
+        stopOpener('반복 실행이 사용자에 의해 중지되었습니다.', 'warning', 'x-circle');
+        addLog('중지됨: 사용자가 동작을 중지했습니다.', 'warning');
         return;
       }
 
       const url = tabUrlInput ? tabUrlInput.value.trim() : '';
       const delaySec = parseInt(tabDelayInput ? tabDelayInput.value : '3', 10) || 3;
+      const maxLoop = parseInt(tabLoopInput ? tabLoopInput.value : '3', 10) || 3;
 
       // Validate URL
       if (!url) {
@@ -637,44 +644,67 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      addLog(`${delaySec}초 후 새 탭 열기 예약 → ${url}`, 'info');
+      if (maxLoop < 1) {
+        setStatus('반복 횟수는 1회 이상이어야 합니다.', 'error', 'alert-circle');
+        addLog('오류: 유효하지 않은 반복 횟수 설정.', 'error');
+        return;
+      }
 
-      // Countdown phase
-      let remaining = delaySec;
+      // Step 1: Open first tab immediately
+      currentLoopCount = 1;
+      addLog(`[시작] 새 탭 반복 열기 시작 (총 ${maxLoop}회 예정)`, 'info');
 
-      const updateCountdown = () => {
-        setStatus(`${remaining}초 후 새 탭을 엽니다... (버튼을 다시 누르면 취소)`, 'loading', 'timer');
-        tabOpenerBtn.innerHTML = `<i data-lucide="x-circle" style="width:18px;height:18px;"></i> 취소 (${remaining}초)`;
+      const openTab = () => {
+        const newTab = window.open(url, '_blank');
+        if (!newTab) {
+          addLog(`오류: 브라우저 팝업 차단으로 인해 새 탭 열기 실패 (${currentLoopCount}/${maxLoop})`, 'error');
+          return false;
+        } else {
+          addLog(`✓ 새 탭 열기 성공 (${currentLoopCount}/${maxLoop}) → ${url}`, 'success');
+          return true;
+        }
+      };
+
+      const success = openTab();
+      if (!success) {
+        setStatus('팝업이 차단되었습니다. 브라우저 팝업 허용 설정을 확인해 주세요.', 'error', 'shield-off');
+        return;
+      }
+
+      // If only 1 loop is requested, finish immediately
+      if (currentLoopCount >= maxLoop) {
+        stopOpener(`반복 실행 완료! (총 ${maxLoop}회)`, 'success', 'check-circle-2');
+        addLog(`[완료] 지정한 반복 횟수(${maxLoop}회)를 모두 채웠습니다.`, 'success');
+        return;
+      }
+
+      // Start countdown timer for subsequent repeats
+      let remainingSeconds = delaySec;
+
+      const updateUI = () => {
+        setStatus(`진행 중: ${currentLoopCount}/${maxLoop} 완료. 다음 탭까지 ${remainingSeconds}초...`, 'loading', 'timer');
+        tabOpenerBtn.innerHTML = `<i data-lucide="x-circle" style="width:18px;height:18px;"></i> 정지 (${currentLoopCount}/${maxLoop})`;
         if (typeof lucide !== 'undefined') lucide.createIcons();
       };
 
-      updateCountdown(); // show immediately
+      updateUI();
 
       countdownTimer = setInterval(() => {
-        remaining--;
-        if (remaining <= 0) {
-          // Countdown done — open the tab
-          clearInterval(countdownTimer);
-          countdownTimer = null;
+        remainingSeconds--;
+        if (remainingSeconds <= 0) {
+          // Open next tab
+          currentLoopCount++;
+          openTab();
 
-          tabOpenerBtn.innerHTML = '<i data-lucide="external-link" style="width:18px;height:18px;"></i> 대기 후 새 탭 열기';
-          if (typeof lucide !== 'undefined') lucide.createIcons();
-
-          setStatus(`새 탭을 여는 중...`, 'loading', 'loader');
-          addLog(`카운트다운 완료. 새 탭 열기 시도 → ${url}`, 'info');
-
-          const newTab = window.open(url, '_blank');
-
-          if (!newTab) {
-            setStatus('팝업이 차단되었습니다. 브라우저 팝업 허용 설정을 확인해 주세요.', 'error', 'shield-off');
-            addLog('오류: 브라우저가 팝업(새 탭)을 차단했습니다.', 'error');
+          if (currentLoopCount >= maxLoop) {
+            stopOpener(`반복 실행 완료! (총 ${maxLoop}회)`, 'success', 'check-circle-2');
+            addLog(`[완료] 지정한 반복 횟수(${maxLoop}회)를 모두 채웠습니다.`, 'success');
           } else {
-            setStatus(`새 탭 열기 완료!`, 'success', 'check-circle-2');
-            addLog(`✓ 새 탭 열기 성공 → ${url}`, 'success');
+            remainingSeconds = delaySec; // reset countdown for next loop
+            updateUI();
           }
-          if (typeof lucide !== 'undefined') lucide.createIcons();
         } else {
-          updateCountdown();
+          updateUI();
         }
       }, 1000);
     });
