@@ -630,7 +630,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const url = tabUrlInput ? tabUrlInput.value.trim() : '';
       const delaySec = parseInt(tabDelayInput ? tabDelayInput.value : '3', 10) || 3;
-      const maxLoop = parseInt(tabLoopInput ? tabLoopInput.value : '3', 10) || 3;
+      
+      let maxLoop = parseInt(tabLoopInput ? tabLoopInput.value : '5', 10);
+      if (isNaN(maxLoop) || maxLoop < 1) {
+        maxLoop = 5;
+      }
 
       // Validate URL
       if (!url) {
@@ -644,15 +648,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      if (maxLoop < 1) {
-        setStatus('반복 횟수는 1회 이상이어야 합니다.', 'error', 'alert-circle');
-        addLog('오류: 유효하지 않은 반복 횟수 설정.', 'error');
-        return;
-      }
-
       // Step 1: Open first tab immediately
       currentLoopCount = 1;
-      addLog(`[시작] 새 탭 반복 열기 시작 (총 ${maxLoop}회 예정)`, 'info');
+      addLog(`[시작] 새 탭 반복 열기 시작 (사용자 설정: 총 ${maxLoop}회)`, 'info');
 
       const openTab = () => {
         try {
