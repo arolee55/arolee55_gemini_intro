@@ -655,19 +655,23 @@ document.addEventListener('DOMContentLoaded', () => {
       addLog(`[시작] 새 탭 반복 열기 시작 (총 ${maxLoop}회 예정)`, 'info');
 
       const openTab = () => {
-        const newTab = window.open(url, '_blank');
-        if (!newTab) {
-          addLog(`오류: 브라우저 팝업 차단으로 인해 새 탭 열기 실패 (${currentLoopCount}/${maxLoop})`, 'error');
-          return false;
-        } else {
+        try {
+          const newTab = window.open(url, '_blank');
+          if (!newTab || newTab.closed || typeof newTab.closed === 'undefined') {
+            addLog(`오류: 브라우저 팝업 차단 감지 (${currentLoopCount}/${maxLoop})`, 'error');
+            return false;
+          }
           addLog(`✓ 새 탭 열기 성공 (${currentLoopCount}/${maxLoop}) → ${url}`, 'success');
           return true;
+        } catch (err) {
+          addLog(`오류: 새 탭 열기 실패 (${currentLoopCount}/${maxLoop}) - ${err.message}`, 'error');
+          return false;
         }
       };
 
       const success = openTab();
       if (!success) {
-        setStatus('팝업이 차단되었습니다. 브라우저 팝업 허용 설정을 확인해 주세요.', 'error', 'shield-off');
+        stopOpener('팝업이 차단되었습니다. 브라우저 주소창 우측에서 팝업을 허용해주세요.', 'error', 'shield-off');
         return;
       }
 
@@ -694,7 +698,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (remainingSeconds <= 0) {
           // Open next tab
           currentLoopCount++;
-          openTab();
+          const opened = openTab();
+
+          if (!opened) {
+            stopOpener('팝업 차단으로 인해 반복이 정지되었습니다. 주소창에서 팝업을 허용해 주세요.', 'error', 'shield-off');
+            return;
+          }
 
           if (currentLoopCount >= maxLoop) {
             stopOpener(`반복 실행 완료! (총 ${maxLoop}회)`, 'success', 'check-circle-2');
