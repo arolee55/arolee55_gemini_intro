@@ -659,6 +659,19 @@ document.addEventListener('DOMContentLoaded', () => {
             addLog(`오류: 브라우저 팝업 차단 감지 (${currentLoopCount}/${maxLoop})`, 'error');
             return false;
           }
+          
+          // Focus recovery attempt: Blur the newly opened tab and focus on self (parent window)
+          try {
+            newTab.blur();
+          } catch (e) {
+            // Might throw cross-origin errors on some browsers
+          }
+          window.focus();
+          // Double guarantee via a slight delay
+          setTimeout(() => {
+            window.focus();
+          }, 100);
+
           addLog(`✓ 새 탭 열기 성공 (${currentLoopCount}/${maxLoop}) → ${url}`, 'success');
           return true;
         } catch (err) {
